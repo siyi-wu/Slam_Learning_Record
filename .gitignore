@@ -1,2 +1,6 @@
 *.pth
 *.pdf
+**/data/
+**/__pycache__/
+**/weights/
+**/outputs/
