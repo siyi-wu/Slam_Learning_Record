@@ -4,3 +4,4 @@
 **/__pycache__/
 **/weights/
 **/outputs/
+.DS_Store
