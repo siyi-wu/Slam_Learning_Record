@@ -4,8 +4,5 @@
 **/__pycache__/
 **/weights/
 **/outputs/
-<<<<<<< Updated upstream
 .DS_Store
-=======
 **/.DS_Store
->>>>>>> Stashed changes
