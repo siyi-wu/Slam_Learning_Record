@@ -6,3 +6,8 @@
 **/outputs/
 .DS_Store
 **/.DS_Store
+**/.vscode/
+**/build/
+
+#iOS
+*.dSYM
