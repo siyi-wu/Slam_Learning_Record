@@ -1,0 +1,44 @@
+#include <iostream>
+#include <cmath>
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
+#include "sophus/se3.hpp"
+
+using namespace std;
+using namespace Eigen;
+
+int main(){
+    // 创建沿z轴旋转90度的旋转矩阵
+    Matrix3d R = AngleAxisd(M_PI/2,Vector3d(0,0,1)).toRotationMatrix();
+
+    // 四元数
+    Quaterniond q(R);
+
+    //构造SO3d
+    Sophus::SO3d SO3_R(R);
+    Sophus::SO3d SO3_q(q);
+    cout << "SO(3) from matrix: \n" << SO3_R.matrix() << endl;
+    cout << "SO(3) from quaternion: \n" << SO3_q.matrix() << endl;
+
+    //用对数获得李代数（so3李代数是一个三维向量）
+    Vector3d so3=SO3_R.log();
+    // hat为向量到反对称矩阵
+    cout << "so3 hat=\n" << Sophus::SO3d::hat(so3) << endl;
+    // 相对的，vee为反对称到向量
+    cout << "so3 hat vee= " << Sophus::SO3d::vee(Sophus::SO3d::hat(so3)).transpose() << endl;
+
+    Vector3d update_so3(1e-4,0,0);//更新量，李代数向量\delta\phi
+    Sophus::SO3d SO3_updated=Sophus::SO3d::exp(update_so3)*SO3_R;//指数映射，李代数向量转换为李群形式 \triangle R
+    cout<<"SO3 updated=\n"<<SO3_updated.matrix()<<endl;
+    
+    cout<<"*****************\n"<<endl;
+
+    // SE(3)操作
+    Vector3d t(1,0,0); //平移向量
+    Sophus::SE3d SE3_Rt(R,t);//从R，t构造SE(3)
+    Sophus::SE3d SE3_qt(q,t);//从q，t构造SE(3)
+
+    return 0;
+}
