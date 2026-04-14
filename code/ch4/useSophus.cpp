@@ -33,12 +33,28 @@ int main(){
     Sophus::SO3d SO3_updated=Sophus::SO3d::exp(update_so3)*SO3_R;//指数映射，李代数向量转换为李群形式 \triangle R
     cout<<"SO3 updated=\n"<<SO3_updated.matrix()<<endl;
     
-    cout<<"*****************\n"<<endl;
+    cout<<"\n*********************\n"<<endl;
 
     // SE(3)操作
     Vector3d t(1,0,0); //平移向量
     Sophus::SE3d SE3_Rt(R,t);//从R，t构造SE(3)
     Sophus::SE3d SE3_qt(q,t);//从q，t构造SE(3)
+    cout<<"SE3 from R,t = \n"<<SE3_Rt.matrix()<<endl;
+    cout<<"SE3 from q,t = \n"<<SE3_qt.matrix()<<endl;
+    //李代数se(3)是一个六维向量
+    typedef Eigen::Matrix<double,6,1> Vector6d;
+    Vector6d se3=SE3_Rt.log();
+    cout<<"se3 = "<<se3.transpose()<<endl;
+    //平移在前旋转在后
+    cout<<"se3 hat = \n"<<Sophus::SE3d::hat(se3)<<endl;
+    cout<<"se3 hat vee = "<<Sophus::SE3d::vee(Sophus::SE3d::hat(se3)).transpose()<<endl;
+
+    //更新
+    Vector6d update_se3;
+    update_se3.setZero();
+    update_se3(0,0)=1e-4;
+    Sophus::SE3d SE3_updated=Sophus::SE3d::exp(update_se3)*SE3_Rt;
+    cout<<"SE3 updated = "<<endl<<SE3_updated.matrix()<<endl;
 
     return 0;
 }
