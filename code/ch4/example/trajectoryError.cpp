@@ -4,14 +4,15 @@
 #include <pangolin/pangolin.h>
 #include <sophus/se3.hpp>
 #include <Eigen/Core>
+#include <OpenGL/gl.h>
 
 using namespace Sophus;
 using namespace std;
 
-string groundtruth_file = "./groundtruth.txt";
-string estimated_file = "./estimated.txt";
+string groundtruth_file = "../groundtruth.txt";
+string estimated_file = "../estimated.txt";
 
-typedef vector<Sophus::SE3d,Eigen::aligned_allocator<Sophus::SE3d>> TrajectoryType;
+typedef vector<Sophus::SE3d,Eigen::aligned_allocator<Sophus::SE3d>> TrajectoryType; // 轨迹类型：SE3d
 
 void DrawTrajectory(const TrajectoryType &gt, const TrajectoryType &esti);
 

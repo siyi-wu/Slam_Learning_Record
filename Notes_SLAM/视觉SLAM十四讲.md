@@ -188,7 +188,15 @@ $$
 
 - 特殊正交群与特殊欧氏群
 
-![image-20260413141746292](./视觉SLAM十四讲.assets/image-20260413141746292.png)
+$$
+\text{SO}(3) = \{ \mathbf{R} \in \mathbb{R}^{3 \times 3} \mid \mathbf{RR}^{\text{T}} = \mathbf{I}, \det(\mathbf{R}) = 1 \}
+$$
+
+$$
+\text{SE}(3) = \left\{ \mathbf{T} = \begin{bmatrix} \mathbf{R} & \mathbf{t} \\ \mathbf{0}^{\text{T}} & 1 \end{bmatrix} \in \mathbb{R}^{4 \times 4} \mid \mathbf{R} \in \text{SO}(3), \mathbf{t} \in \mathbb{R}^3 \right\}
+$$
+
+
 
 对加法不封闭，对乘法封闭
 
@@ -341,3 +349,113 @@ $$
 
 - 这里只需要求解反对称矩阵，使扰动模型更为实用。
 
+# CH5
+
+- 针孔模型，畸变模型
+
+## 针孔相机模型
+
+![image-20260415092558766](./视觉SLAM十四讲.assets/image-20260415092558766.png)
+$$
+X' = f \frac{X}{Z} \\
+Y' = f \frac{Y}{Z}
+$$
+
+- 从坐标的角度上看，应该是带有负号。不过这里将负号去除。
+
+### 像素坐标系
+
+- 与成像平面相差一个缩放和一个原点平移。以u，v作为横纵坐标：
+
+- 像素坐标与成像平面：
+
+$$
+\begin{cases} u = \alpha X' + c_x \\ v = \beta Y' + c_y \end{cases}
+$$
+
+- 合并参数：
+
+$$
+\begin{cases} u = f_x \frac{X}{Z} + c_x \\ v = f_y \frac{Y}{Z} + c_y \end{cases}
+$$
+
+- 齐次坐标表示：
+
+$$
+\begin{pmatrix} u \\ v \\ 1 \end{pmatrix} = \frac{1}{Z} \begin{pmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} X \\ Y \\ Z \end{pmatrix} \stackrel{\text{def}}{=} \frac{1}{Z} \mathbf{K P}
+$$
+
+$$
+Z \begin{pmatrix} u \\ v \\ 1 \end{pmatrix} = \begin{pmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{pmatrix} \begin{pmatrix} X \\ Y \\ Z \end{pmatrix} \stackrel{\text{def}}{=} \mathbf{K P}
+$$
+
+- 公式的含义是：将相机坐标系下的真实点，变换为像素坐标系的点。从单位的角度上看，$f$的单位为米（焦距），$f_x,f_y,c_x,c_y$的单位为像素
+- 其中，相机内参矩阵为：
+
+$$
+K = \begin{pmatrix} f_x & 0 & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{pmatrix}
+$$
+
+- $P$是相机坐标系下看到的物体的坐标；也可以说是$P$在世界坐标系下的坐标，根据相机当前的位姿变换到相机坐标系下的坐标。那么公式进一步改为：
+
+$$
+ZP_{uv} = Z \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = \mathbf{K} (\mathbf{R}P_w + \mathbf{t}) = \mathbf{K}\mathbf{T}P_w
+$$
+
+- 像素坐标是，先对世界坐标系下点的坐标$P_w$进行外参变换，再进行内参变换
+- 公式右侧的T为$[\mathbf{R} | \mathbf{t}]$，是一个3x4的增广矩阵；或者说是去掉了最后一行的4x4的SE(3)。那么P需要加一维，即$\begin{bmatrix} X & Y & Z & 1 \end{bmatrix}^T$
+- 归一化坐标：$\begin{bmatrix} X/Z & Y/Z & 1 \end{bmatrix}^T$，也可以看作在z=1处有一个归一化平面
+- $\begin{bmatrix} u & v & 1 \end{bmatrix}^T$是齐次坐标。在得到$P_{uv}$的过程中，深度信息丢失（因为最后一维强制为1）
+- 深度丢失：已知$u,v$求$P_w$，Z的值可以任取，此时$P_w$是可以随深度随意调整的。
+
+### 畸变模型
+
+- 透镜形状导致：透镜形状导致的畸变是径向畸变；不规则畸变通常镜像对称，分为桶形畸变和枕形畸变。
+- 透镜和成像面不平行导致：切向畸变。
+
+- 径向畸变：坐标点沿长度方向发生变化，即距离原点的长度发生变化
+
+- 切向畸变坐标点沿切线方向发生变化，即水平夹角变化
+
+径向畸变公式：
+$$
+\begin{cases} 
+x_{\text{distorted}} = x(1 + k_1r^2 + k_2r^4 + k_3r^6) \\ 
+y_{\text{distorted}} = y(1 + k_1r^2 + k_2r^4 + k_3r^6) 
+\end{cases}
+$$
+切向畸变公式：
+$$
+\begin{cases} 
+x_{\text{distorted}} = x + 2p_1xy + p_2(r^2 + 2x^2) \\ 
+y_{\text{distorted}} = y + p_1(r^2 + 2y^2) + 2p_2xy 
+\end{cases}
+$$
+
+## 双目相机模型
+
+![image-20260415183855753](./视觉SLAM十四讲.assets/image-20260415183855753.png)
+
+- 基线：b
+- 根据相似关系，有：
+
+$$
+\frac{z - f}{z} = \frac{b - u_L + u_R}{b}
+$$
+
+$$
+z = \frac{fb}{d}, \quad d \stackrel{\text{def}}{=} u_L - u_R
+$$
+
+- 由于d最小为一个像素，双目深度存在理论最大值。
+- 基线越长，能测的最大距离就越远。
+
+## RGB- D相机
+
+- 主动测量距离。容易受到干扰，使用范围受限
+
+## 图像
+
+- 坐标轴方向与相机坐标系一致
+
+![image-20260415190223030](./视觉SLAM十四讲.assets/image-20260415190223030.png)
