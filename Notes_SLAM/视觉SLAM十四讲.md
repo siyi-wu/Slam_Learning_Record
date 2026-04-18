@@ -69,12 +69,12 @@
 
 - 运动方程/观测方程
 
-![image-20260409105931381](./视觉SLAM十四讲.assets/image-20260409105931381.png)
+$$
+\begin{cases} \boldsymbol{x}_k = f(\boldsymbol{x}_{k-1}, \boldsymbol{u}_k, \boldsymbol{w}_k), & k=1, \cdots, K \\ \boldsymbol{z}_{k,j} = h(\boldsymbol{y}_j, \boldsymbol{x}_k, \boldsymbol{v}_{k,j}), & (k, j) \in \mathcal{O} \end{cases}
+$$
 
 - 已知运动测量的读数u、传感器读数z
 - 求解位姿x、图像y
-
-
 
 - SLAM问题：状态估计问题——根据带有噪声的测量数据，估计内部的、隐藏状态的变量
 
@@ -459,3 +459,196 @@ $$
 - 坐标轴方向与相机坐标系一致
 
 ![image-20260415190223030](./视觉SLAM十四讲.assets/image-20260415190223030.png)
+
+# CH6
+
+## 状态估计问题
+
+### 批量状态估计，最大后验估计
+
+- 运动方程与观测方程
+
+$$
+\begin{cases} \boldsymbol{x}_k = f(\boldsymbol{x}_{k-1}, \boldsymbol{u}_k, \boldsymbol{w}_k), & k=1, \cdots, K \\ \boldsymbol{z}_{k,j} = h(\boldsymbol{y}_j, \boldsymbol{x}_k, \boldsymbol{v}_{k,j}), & (k, j) \in \mathcal{O} \end{cases}
+$$
+
+其中$x_k$为相机位姿。我要在$x_k$处，对路标$y_j$进行观测，观测到的点对应图像上的像素位置$z_{k,j}$，则有观测方程：
+$$
+s\boldsymbol{z}_{k,j} = \boldsymbol{K}(\boldsymbol{R}_k \boldsymbol{y}_j + \boldsymbol{t}_k)
+$$
+
+- 这里的$s$为尺度因子
+
+- 考虑噪声，有：
+
+$$
+\boldsymbol{w}_k \sim \mathcal{N}(\mathbf{0}, \boldsymbol{R}_k), \quad \boldsymbol{v}_k \sim \mathcal{N}(\mathbf{0}, \boldsymbol{Q}_{k,j})
+$$
+
+前者代表运动噪声，后者代表观测噪声。二者均服从正态分布。
+
+- 增量/渐进方法incremental，滤波器：有当前的估计状态，然后用不惯新数据更新。
+- 批量方法batch：批处理；可以在更大的范围达到最优化，为主流方法。问题：不实时，不符合SLAM运动场景。引出：**滑动窗口估计法**
+- **最大后验概率**：
+
+$$
+P(\boldsymbol{x}, \boldsymbol{y} | \boldsymbol{z}, \boldsymbol{u}) = \frac{P(\boldsymbol{z}, \boldsymbol{u} | \boldsymbol{x}, \boldsymbol{y}) P(\boldsymbol{x}, \boldsymbol{y})}{P(\boldsymbol{z}, \boldsymbol{u})} \propto \underbrace{P(\boldsymbol{z}, \boldsymbol{u} | \boldsymbol{x}, \boldsymbol{y})}_{\text{似然}} \underbrace{P(\boldsymbol{x}, \boldsymbol{y})}_{\text{先验}}
+$$
+
+- 实际上就是：在已知输入数据u和观测数据z的情况下，找到一对x，y，使其出现的概率最大。即看到图像后自己最可能的位置。
+- 后验难以直接计算，故用：$\text{后验} \propto \text{似然} \times \text{先验}$
+- 似然：在这个位姿下，看到传感器的图像的概率是多大
+- 先验：根据上一时刻的运动，现在我的位置在哪
+- 只找概率最大的那个状态点：$(\boldsymbol{x}, \boldsymbol{y})^*_{\text{MAP}} = \arg \max P(\boldsymbol{z}, \boldsymbol{u} | \boldsymbol{x}, \boldsymbol{y}) P(\boldsymbol{x}, \boldsymbol{y})$
+- 没有先验，就求解**最大似然估计**：
+
+$$
+(\boldsymbol{x}, \boldsymbol{y})^*_{\text{MLE}} = \arg \max P(\boldsymbol{z}, \boldsymbol{u} | \boldsymbol{x}, \boldsymbol{y})
+$$
+
+即假设没有任何先验知识，就是找到一组状态，使观测到现在传感器的数据的可能性最大。
+
+### 最小二乘
+
+- 可以使用**最小化负对数**求解一个高斯分布的最大似然
+
+- 负对数似然变换：
+
+$$
+-\ln(P(\boldsymbol{x})) = \frac{1}{2}\ln((2\pi)^N \det(\boldsymbol{\Sigma})) + \frac{1}{2}(\boldsymbol{x} - \boldsymbol{\mu})^T \boldsymbol{\Sigma}^{-1} (\boldsymbol{x} - \boldsymbol{\mu})
+$$
+
+- 在SLAM中则有：
+
+$$
+\begin{aligned} (\boldsymbol{x}_k, \boldsymbol{y}_j)^* &= \arg \max \mathcal{N}(h(\boldsymbol{y}_j, \boldsymbol{x}_k), \boldsymbol{Q}_{k,j}) \\ &= \arg \min \left( (\boldsymbol{z}_{k,j} - h(\boldsymbol{x}_k, \boldsymbol{y}_j))^T \boldsymbol{Q}_{k,j}^{-1} (\boldsymbol{z}_{k,j} - h(\boldsymbol{x}_k, \boldsymbol{y}_j)) \right) \end{aligned}
+$$
+
+- 最大化似然概率等价于最小化马氏距离的平方
+- 考虑批量输入。假设各个时刻的输入和观测相互独立，意味着输入之间是独立的，观测之间是独立的，输入和观测是独立的。那么联合分布可以进行因式分解，也说明各个时刻的运动和观测是可以独立处理的。有如下几个公式：
+
+$$
+P(\boldsymbol{z}, \boldsymbol{u} | \boldsymbol{x}, \boldsymbol{y}) = \prod_k P(\boldsymbol{u}_k | \boldsymbol{x}_{k-1}, \boldsymbol{x}_k) \prod_{k,j} P(\boldsymbol{z}_{k,j} | \boldsymbol{x}_k, \boldsymbol{y}_j)
+$$
+
+$$
+\begin{aligned} \boldsymbol{e}_{\boldsymbol{u},k} &= \boldsymbol{x}_k - f(\boldsymbol{x}_{k-1}, \boldsymbol{u}_k) \\ \boldsymbol{e}_{\boldsymbol{z},j,k} &= \boldsymbol{z}_{k,j} - h(\boldsymbol{x}_k, \boldsymbol{y}_j) \end{aligned}
+$$
+
+$$
+\min J(\boldsymbol{x}, \boldsymbol{y}) = \sum_k \boldsymbol{e}_{\boldsymbol{u},k}^T \boldsymbol{R}_k^{-1} \boldsymbol{e}_{\boldsymbol{u},k} + \sum_k \sum_j \boldsymbol{e}_{\boldsymbol{z},k,j}^T \boldsymbol{Q}_{k,j}^{-1} \boldsymbol{e}_{\boldsymbol{z},k,j}
+$$
+
+前半部分指的是运动模型，后半部分是观测模型。然后求出一个总的代价函数。这即是一个最小二乘问题。
+
+## 非线性最小二乘
+
+- $\min_{x} F(x) = \frac{1}{2} \|f(x)\|_2^2$，迭代步骤：
+
+1. 给定某个初始值 $\boldsymbol{x}_0$。
+2. 对于第 $k$ 次迭代，寻找一个增量 $\Delta \boldsymbol{x}_k$，使得 $\|\boldsymbol{f}(\boldsymbol{x}_k + \Delta \boldsymbol{x}_k)\|_2^2$ 达到极小值。
+3. 若 $\Delta \boldsymbol{x}_k$ 足够小，则停止。
+4. 否则，令 $\boldsymbol{x}_{k+1} = \boldsymbol{x}_k + \Delta \boldsymbol{x}_k$，返回第 2 步。
+
+- 这里的主要问题是，如何找到每次迭代点的增量
+
+### 一阶和二阶梯度
+
+- 考虑第k次迭代，要寻找增量$\Delta \boldsymbol{x}_k$，可以在$x_k$附近进行泰勒展开：
+
+$$
+F(x_k + \Delta x_k) \approx F(x_k) + \mathbf{J}(x_k)^T \Delta x_k + \frac{1}{2} \Delta x_k^T \mathbf{H}(x_k) \Delta x_k
+$$
+
+- 若保留一阶梯度，取增量为反向的梯度，可以保证函数下降：$\Delta x^* = -\mathbf{J}(x_k) \tag{6.27}$。此为**最速下降法**。不过这个方法过于贪心（算$\Delta \boldsymbol{x}_k$时），容易出现锯齿，增加迭代次数。
+- 若保留二阶梯度，此时增量方程为：
+
+$$
+\Delta x^* = \arg \min \left( F(x) + \mathbf{J}(x)^T \Delta x + \frac{1}{2} \Delta x^T \mathbf{H} \Delta x \right)
+$$
+
+- 对$\Delta \boldsymbol{x}_k$求导，有$\mathbf{J} + \mathbf{H} \Delta x = \mathbf{0} \Rightarrow \mathbf{H} \Delta x = -\mathbf{J} $。这里可以得到增量，也被称为**牛顿法**。这个方法要计算$H$矩阵，问题规模大的时候难以计算。
+
+### 高斯牛顿法
+
+- 过程的逻辑：我要找到使$\|f(x+\Delta x)\|^2$达到最小的$\Delta \boldsymbol{x}_k$
+
+- 在$\min_{x} F(x) = \frac{1}{2} \|f(x)\|_2^2$中，我们不再对F进行展开，而是对f进行展开
+
+$$
+f(x + \Delta x) \approx f(x) + \mathbf{J}(x)^T \Delta x
+$$
+
+- 那么就是求解下列最小二乘问题
+
+$$
+\Delta x^* = \arg \min_{\Delta x} \frac{1}{2} \| f(x) + \mathbf{J}(x)^T \Delta x \|^2
+$$
+
+- 展开，得到：
+
+$$
+\begin{aligned}
+\frac{1}{2} \| f(x) + \mathbf{J}(x)^T \Delta x \|^2 &= \frac{1}{2} (f(x) + \mathbf{J}(x)^T \Delta x)^T (f(x) + \mathbf{J}(x)^T \Delta x) \\
+&= \frac{1}{2} (\| f(x) \|_2^2 + 2f(x) \mathbf{J}(x)^T \Delta x + \Delta x^T \mathbf{J}(x) \mathbf{J}(x)^T \Delta x)
+\end{aligned}
+$$
+
+- 对上述公式求导并使之为零：
+
+$$
+\mathbf{J}(x) f(x) + \mathbf{J}(x) \mathbf{J}(x)^T \Delta x = 0
+$$
+
+$$
+\underbrace{\mathbf{J}(x) \mathbf{J}(x)^T}_{\mathbf{H}(x)} \Delta x = \underbrace{-\mathbf{J}(x) f(x)}_{\mathbf{g}(x)}
+$$
+
+- 我们拿到了一个增量方程，而求解这个方程也是整个优化问题的核心：
+
+$$
+\mathbf{H} \Delta x = \mathbf{g}
+$$
+
+- 高斯牛顿法的步骤可以写成：
+
+1. 给定初始值 $x_0$。
+2. 对于第 $k$ 次迭代，求出当前的雅可比矩阵 $\mathbf{J}(x_k)$ 和误差 $f(x_k)$。
+3. 求解增量方程：$\mathbf{H} \Delta x_k = \mathbf{g}$。
+4. 若 $\Delta x_k$ 足够小，则停止。否则，令 $x_{k+1} = x_k + \Delta x_k$，返回第 2 步。
+
+### 列文伯格—马夸尔特方法
+
+- 高斯牛顿法，在展开点附近有比较好的近似效果；我们可以给$\Delta x$一个**信赖区域**，定义二阶近似的有效区间。
+- 刻画近似的好坏程度：
+
+$$
+\rho = \frac{f(x + \Delta x) - f(x)}{\mathbf{J}(x)^T \Delta x}
+$$
+
+- 即实际下降的值比近似下降的值。若接近1则认为近似很好。
+- 那么改良版的非线性优化步骤为：
+
+1. 给定初始值 $x_0$，以及初始优化半径 $\mu$。
+
+2. 对于第 $k$ 次迭代，在高斯牛顿法的基础上加上信赖区域，求解：
+
+   $$\min_{\Delta x_k} \frac{1}{2} \| f(x_k) + \mathbf{J}(x_k)^T \Delta x_k \|^2, \quad \text{s.t. } \| \mathbf{D} \Delta x_k \|^2 \le \mu \tag{6.35}$$
+
+   其中，$\mu$ 是信赖区域的半径，$\mathbf{D}$ 为系数矩阵，将在后文说明。
+
+3. 计算 $\rho$。
+
+4. 若 $\rho > \frac{3}{4}$，则设置 $\mu = 2\mu$。
+
+5. 若 $\rho < \frac{1}{4}$，则设置 $\mu = 0.5\mu$。
+
+6. 如果 $\rho$ 大于某阈值，则认为近似可行。令 $x_{k+1} = x_k + \Delta x_k$。
+
+7. 判断算法是否收敛。如不收敛则返回第 2 步，否则结束。
+
+### 总结
+
+- 高斯牛顿法：对F求二阶导不如对f求一阶导，求H。
+
+-  列文伯格—马夸尔特方法：引入信赖区域，解决矩阵不可逆的问题或者步长太大的问题。

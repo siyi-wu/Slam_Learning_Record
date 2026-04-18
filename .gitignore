@@ -9,5 +9,5 @@
 **/.vscode/
 **/build/
 
-#iOS
+# Macbook
 *.dSYM
