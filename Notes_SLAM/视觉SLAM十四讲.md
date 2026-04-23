@@ -193,10 +193,8 @@ $$
 $$
 
 $$
-\text{SE}(3) = \left\{ \mathbf{T} = \begin{bmatrix} \mathbf{R} & \mathbf{t} \\ \mathbf{0}^{\text{T}} & 1 \end{bmatrix} \in \mathbb{R}^{4 \times 4} \mid \mathbf{R} \in \text{SO}(3), \mathbf{t} \in \mathbb{R}^3 \right\}
+SE(3) = \left\{ \mathbf{T} = \begin{bmatrix} \mathbf{R} & \mathbf{t} \\ \mathbf{0}^\text{T} & 1 \end{bmatrix} \in \mathbb{R}^{4 \times 4} \mid \mathbf{R} \in SO(3), \mathbf{t} \in \mathbb{R}^3 \right\}
 $$
-
-
 
 对加法不封闭，对乘法封闭
 
@@ -418,6 +416,8 @@ $$
 - 切向畸变坐标点沿切线方向发生变化，即水平夹角变化
 
 径向畸变公式：
+
+
 $$
 \begin{cases} 
 x_{\text{distorted}} = x(1 + k_1r^2 + k_2r^4 + k_3r^6) \\ 
@@ -425,6 +425,8 @@ y_{\text{distorted}} = y(1 + k_1r^2 + k_2r^4 + k_3r^6)
 \end{cases}
 $$
 切向畸变公式：
+
+
 $$
 \begin{cases} 
 x_{\text{distorted}} = x + 2p_1xy + p_2(r^2 + 2x^2) \\ 
@@ -459,6 +461,13 @@ $$
 - 坐标轴方向与相机坐标系一致
 
 ![image-20260415190223030](./视觉SLAM十四讲.assets/image-20260415190223030.png)
+
+## 总结
+
+- 相机坐标、归一化坐标、像素坐标
+- - 相机坐标：相机坐标系下的真实坐标
+  - 归一化坐标：相机坐标系除以Z（即对Z归一化）的坐标
+  - 像素坐标：归一化坐标左乘内参矩阵K
 
 # CH6
 
@@ -652,3 +661,464 @@ $$
 - 高斯牛顿法：对F求二阶导不如对f求一阶导，求H。
 
 -  列文伯格—马夸尔特方法：引入信赖区域，解决矩阵不可逆的问题或者步长太大的问题。
+
+# CH7 视觉里程计
+
+- 特征点；估计相机运动
+
+## 特征点法
+
+### 特征点
+
+- 希望特征点在相机运动之后保持稳定
+- 图像中的角点和边缘辨识度更强
+- 人工设计特征点，有以下性质
+- - 可重复性（相同特征可以在不同图像中找到），可区别性（不同特征不同表达），高效率（数量少），本地性（只与一小片图像区域相关）
+- 关键点，描述子：
+- - 关键点：特征点的位置、朝向、大小等
+  - 描述子：向量等，描述周围信息；若两个特征点在向量空间距离相近，就认为是同一个特征点
+
+### ORB特征
+
+#### FAST关键点
+
+- 在图像中选取像素 $p$，假设它的亮度为 $I_p$。
+- 设置一个阈值 $T$（比如，$I_p$ 的 20%）。
+- 以像素 $p$ 为中心，选取半径为 3 的圆上的 16 个像素点。
+- 假如选取的圆上有连续的 $N$ 个点的亮度大于 $I_p + T$ 或小于 $I_p - T$，那么像素 $p$ 可以被认为是特征点（$N$ 通常取 12，即 FAST-12。其他常用的 $N$ 取值为 9 和 11，它们分别被称为 FAST-9 和 FAST-11）。
+- 循环以上四步，对每一个像素执行相同的操作。
+
+![image-20260420150124309](./视觉SLAM十四讲.assets/image-20260420150124309.png)
+
+- 或者找周围一圈像素的亮度，当1，5，9，13号像素的亮度同时有三个大于$I_p + T$ 或小于 $I_p - T$，才认为可能是角点
+- 在此之后要过非极大值抑制，只保留响应极大值的角点
+- 金字塔图像：匹配相机前后帧的变化
+- 旋转：求灰度质心
+- - 拿到一个图像块的矩
+
+$$
+m_{pq} = \sum_{x,y \in B} x^p y^q I(x, y), \quad p,q = \{0, 1\}
+$$
+
+- - 通过矩找质心：$m_{00}$是整个图像块的总灰度值，$m_{10}$和$m_{01}$是灰度在x和y方向上的加权分布
+
+$$
+C = \left( \frac{m_{10}}{m_{00}}, \frac{m_{01}}{m_{00}} \right)
+$$
+
+- - 拿到特征点方向：特征点的旋转不会导致特征点无法匹配
+
+$$
+\theta = \arctan(m_{01}/m_{10})
+$$
+
+#### BRIEF描述子
+
+- 二进制描述子，比较特征点附近两个随机像素大小关系，从而得到周围信息。
+- 旋转可以通过Oriented FAST计算得到
+
+### 特征匹配
+
+- 暴力匹配：取距离最近的特征点
+- 快速近似最近邻FLANN
+
+## 对极几何
+
+- 用于恢复两帧之间摄像机的运动
+
+### 对极约束
+
+- 考虑两帧图像之间的运动
+
+![image-20260420165531663](./视觉SLAM十四讲.assets/image-20260420165531663.png)
+
+- $p_1,p_2$为特征匹配点，$e_1,e_2$为极点，$l_1,l_2$为极线
+- $O_1,O_2,P$可以确定极平面，$O_1,O_2$为基线
+
+$$
+P = [X, Y, Z]^T
+$$
+
+$$
+s_1 \mathbf{p}_1 = \mathbf{K} P, \quad s_2 \mathbf{p}_2 = \mathbf{K} (\mathbf{R} P + \mathbf{t})
+$$
+
+$$
+\mathbf{p}_1 \simeq \mathbf{K} P, \quad \mathbf{p}_2 \simeq \mathbf{K} (\mathbf{R} P + \mathbf{t})
+$$
+
+- 转化为归一化平面
+
+$$
+\mathbf{x}_1 = \mathbf{K}^{-1} \mathbf{p}_1, \quad \mathbf{x}_2 = \mathbf{K}^{-1} \mathbf{p}_2
+$$
+
+$$
+\mathbf{x}_2 \simeq \mathbf{R} \mathbf{x}_1 + \mathbf{t} 
+$$
+
+- 对极约束推导：
+
+$$
+\mathbf{t}^\wedge \mathbf{x}_2 \simeq \mathbf{t}^\wedge \mathbf{R} \mathbf{x}_1 
+$$
+
+$$
+\mathbf{x}_2^T \mathbf{t}^\wedge \mathbf{x}_2 \simeq \mathbf{x}_2^T \mathbf{t}^\wedge \mathbf{R} \mathbf{x}_1
+$$
+
+- $\mathbf{t}^\wedge \mathbf{x}_2$与$\mathbf{t}$ 和 $\mathbf{x}_2$ 都垂直，与$\mathbf{x}_2$ 做内积结果为0
+
+$$
+\mathbf{x}_2^T \mathbf{t}^\wedge \mathbf{R} \mathbf{x}_1 = 0 
+$$
+
+$$
+\mathbf{p}_2^T \mathbf{K}^{-T} \mathbf{t}^\wedge \mathbf{R} \mathbf{K}^{-1} \mathbf{p}_1 = 0
+$$
+
+- 基础矩阵F和本质矩阵E：
+
+$$
+E = t^{\wedge} R, F = K^{-T} E K^{-1}, x_{2}^{T} E x_{1} = p_{2}^{T} F p_{1} = 0
+$$
+
+- 因此估计相机位姿（即求$R$与$t$）为如下步骤：
+
+- - 根据匹配点像素位置求E或F
+  - 根据E或F求R和t
+
+### 本质矩阵
+
+$$
+E=t^{\wedge}R
+$$
+
+- 尺度等价：无法通过匹配点确定绝对距离
+- 奇异值：必须是 $[\sigma, \sigma, 0]^T$ 的形式，因为$R$（旋转矩阵）的奇异值全为1，$t^{\wedge}$奇异值为$[\text{length}, \text{length}, 0]$。该方法可以判断3x3矩阵是否为本质矩阵
+- 自由度，R和t分别有3个自由度，由于尺度等价性丢失一个自由度，因此E有5个自由度。因此理论上5对匹配点就可以解出E（不过5点非线性，难解）
+
+#### 八点法
+
+- 只利用尺度等价性
+- 考虑一对匹配点，有：
+
+$$
+(u_2, v_2, 1) \begin{pmatrix} e_1 & e_2 & e_3 \\ e_4 & e_5 & e_6 \\ e_7 & e_8 & e_9 \end{pmatrix} \begin{pmatrix} u_1 \\ v_1 \\ 1 \end{pmatrix} = 0
+$$
+
+- 本质矩阵向量化：
+
+$$
+\mathbf{e} = [e_1, e_2, e_3, e_4, e_5, e_6, e_7, e_8, e_9]^T
+$$
+
+- 单个点对线性约束：
+
+$$
+[u_2u_1, u_2v_1, u_2, v_2u_1, v_2v_1, v_2, u_1, v_1, 1] \cdot \mathbf{e} = 0
+$$
+
+- 八点法：
+
+$$
+\begin{pmatrix} u_2^1u_1^1 & u_2^1v_1^1 & u_2^1 & v_2^1u_1^1 & v_2^1v_1^1 & v_2^1 & u_1^1 & v_1^1 & 1 \\ u_2^2u_1^2 & u_2^2v_1^2 & u_2^2 & v_2^2u_1^2 & v_2^2v_1^2 & v_2^2 & u_1^2 & v_1^2 & 1 \\ \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots & \vdots \\ u_2^8u_1^8 & u_2^8v_1^8 & u_2^8 & v_2^8u_1^8 & v_2^8v_1^8 & v_2^8 & u_1^8 & v_1^8 & 1 \end{pmatrix} \begin{pmatrix} e_1 \\ e_2 \\ e_3 \\ e_4 \\ e_5 \\ e_6 \\ e_7 \\ e_8 \\ e_9 \end{pmatrix} = 0
+$$
+
+- 从本质矩阵E中看（$\Sigma$ 为奇异值矩阵），进行奇异值分解SVD：
+
+$$
+E = U \Sigma V^T
+$$
+
+- 那么可以得到E的4个解
+
+$$
+\begin{cases}
+t_1^{\wedge} = U R_Z(\frac{\pi}{2}) \Sigma U^T, & R_1 = U R_Z^T(\frac{\pi}{2}) V^T \\
+t_2^{\wedge} = U R_Z(-\frac{\pi}{2}) \Sigma U^T, & R_2 = U R_Z^T(-\frac{\pi}{2}) V^T
+\end{cases}
+$$
+
+- 原因：由于$t^{\wedge}$的秩为2，旋转矩阵不改变奇异值，引入辅助矩阵：
+
+$$
+W = \begin{bmatrix} 0 & -1 & 0 \\ 1 & 0 & 0 \\ 0 & 0 & 1 \end{bmatrix}
+$$
+
+- 此时有：
+
+$$
+E = (U W \Sigma U^T) (U W^T V^T)
+$$
+
+- $U W \Sigma U^T$ 是一个反对称矩阵，可以把它看作 $t^{\wedge}$；$U W^T V^T$ 是两个正交矩阵的乘积，依然是正交矩阵，可以把它看作 $R$
+
+- 所以对于$W$的位置，可以取$W$或者$W^T$，二者等价，也就是说有4个解
+
+![image-20260421081145622](./视觉SLAM十四讲.assets/image-20260421081145622.png)
+
+- 解E：
+
+$$
+E = U \text{diag}\left( \frac{\sigma_1 + \sigma_2}{2}, \frac{\sigma_1 + \sigma_2}{2}, 0 \right) V^T
+$$
+
+### 单应矩阵
+
+- 描述处于共同平面上的一些点在两张图片之间的变换关系
+
+- 平面方程（$n$ 是平面的法向量，$P$ 是空间点坐标，$d$ 是相机中心到平面的距离）：
+
+$$
+n^T P + d = 0, -\frac{n^T P}{d} = 1 
+$$
+
+- 所以单应矩阵H为：
+
+$$
+\begin{aligned}
+p_2 & \simeq K(RP + t) \\
+& \simeq K(RP + t \cdot (-\frac{n^T P}{d})) \\
+& \simeq K(R - \frac{tn^T}{d})P \\
+& \simeq K(R - \frac{tn^T}{d})K^{-1}p_1
+\end{aligned}
+$$
+
+$$
+p_2 \simeq Hp_1
+$$
+
+$$
+H = K(R - \frac{tn^T}{d})K^{-1}
+$$
+
+- 求解方法DLT（一组匹配点可以构造出两个约束）：
+
+$$
+\begin{pmatrix}
+u_1^1 & v_1^1 & 1 & 0 & 0 & 0 & -u_1^1 u_2^1 & -v_1^1 u_2^1 \\
+0 & 0 & 0 & u_1^1 & v_1^1 & 1 & -u_1^1 v_2^1 & -v_1^1 v_2^1 \\
+u_1^2 & v_1^2 & 1 & 0 & 0 & 0 & -u_1^2 u_2^2 & -v_1^2 u_2^2 \\
+0 & 0 & 0 & u_1^2 & v_1^2 & 1 & -u_1^2 v_2^2 & -v_1^2 v_2^2 \\
+u_1^3 & v_1^3 & 1 & 0 & 0 & 0 & -u_1^3 u_2^3 & -v_1^3 u_2^3 \\
+0 & 0 & 0 & u_1^3 & v_1^3 & 1 & -u_1^3 v_2^3 & -v_1^3 v_2^3 \\
+u_1^4 & v_1^4 & 1 & 0 & 0 & 0 & -u_1^4 u_2^4 & -v_1^4 u_2^4 \\
+0 & 0 & 0 & u_1^4 & v_1^4 & 1 & -u_1^4 v_2^4 & -v_1^4 v_2^4
+\end{pmatrix}
+\begin{pmatrix}
+h_1 \\ h_2 \\ h_3 \\ h_4 \\ h_5 \\ h_6 \\ h_7 \\ h_8
+\end{pmatrix}
+=
+\begin{pmatrix}
+u_2^1 \\ v_2^1 \\ u_2^2 \\ v_2^2 \\ u_2^3 \\ v_2^3 \\ u_2^4 \\ v_2^4
+\end{pmatrix}
+$$
+
+## 三角测量
+
+- 估计地图点的深度
+
+$$
+s_2 \mathbf{x}_2 = s_1 \mathbf{R} \mathbf{x}_1 + \mathbf{t}
+$$
+
+$$
+s_2 \mathbf{x}_2^{\wedge} \mathbf{x}_2 = 0 = s_1 \mathbf{x}_2^{\wedge} \mathbf{R} \mathbf{x}_1 + \mathbf{x}_2^{\wedge} \mathbf{t}
+$$
+
+- 最后用最小二乘解
+
+- 三角测量的矛盾：增大平移可能导致匹配实效，平移太小则精度不够
+
+## PnP
+
+- 当知道n个3D空间点及其投影位置时，如何估计相机位姿
+- 最少需要3个点对，加一个额外点验证结果，就可以估计相机运动
+
+### 直接线性变换
+
+ 已知一组3D点的位置，以及它们在某个相机中的投影位置，求该相机的位姿
+
+- 三维空间点到二维图像点的齐次坐标变换：
+
+$$
+s \begin{pmatrix} u_1 \\ v_1 \\ 1 \end{pmatrix} = \begin{pmatrix} t_1 & t_2 & t_3 & t_4 \\ t_5 & t_6 & t_7 & t_8 \\ t_9 & t_{10} & t_{11} & t_{12} \end{pmatrix} \begin{pmatrix} X \\ Y \\ Z \\ 1 \end{pmatrix}
+$$
+
+- 消去尺度因子，得到约束方程：
+
+$$
+u_1 = \frac{t_1X + t_2Y + t_3Z + t_4}{t_9X + t_{10}Y + t_{11}Z + t_{12}}, \quad v_1 = \frac{t_5X + t_6Y + t_7Z + t_8}{t_9X + t_{10}Y + t_{11}Z + t_{12}}
+$$
+
+- 定义矩阵的行向量为 $\mathbf{t}_1, \mathbf{t}_2, \mathbf{t}_3$，有：
+
+$$
+\mathbf{t}_1^T \mathbf{P} - \mathbf{t}_3^T \mathbf{P} u_1 = 0, \quad \mathbf{t}_2^T \mathbf{P} - \mathbf{t}_3^T \mathbf{P} v_1 = 0
+$$
+
+- 有N个特征点就有2N个方程：
+
+$$
+\begin{pmatrix} \mathbf{P}_1^T & 0 & -u_1 \mathbf{P}_1^T \\ 0 & \mathbf{P}_1^T & -v_1 \mathbf{P}_1^T \\ \vdots & \vdots & \vdots \\ \mathbf{P}_N^T & 0 & -u_N \mathbf{P}_N^T \\ 0 & \mathbf{P}_N^T & -v_N \mathbf{P}_N^T \end{pmatrix} \begin{pmatrix} \mathbf{t}_1 \\ \mathbf{t}_2 \\ \mathbf{t}_3 \end{pmatrix} = 0
+$$
+
+- 因此理论上需要六个点对（本来矩阵有12个参数，然后尺度等价性去除一个自由度），就可以求解这个矩阵
+
+### P3P
+
+- 输入三对3D-2D匹配点。已知三点在世界坐标系中的坐标，一旦算出3D点在相机坐标系下的坐标，就得到了3D-3D的对应点
+
+![image-20260422110229120](./视觉SLAM十四讲.assets/image-20260422110229120.png)
+
+### 最小化重投影误差求解PnP
+
+- 重投影误差：将3D点的投影位置与观测位置作差
+
+- 前面的方法往往先求相机位姿，再求空间点位置，而非线性优化则将它们放在一起优化。
+
+![image-20260422135326676](./视觉SLAM十四讲.assets/image-20260422135326676.png)
+
+- 重投影误差对位姿的导数，重投影误差 $\mathbf{e}$ 关于相机位姿李代数 $\delta \boldsymbol{\xi}$ 的 $2 \times 6$ 雅可比矩阵
+
+$$
+\frac{\partial \mathbf{e}}{\partial \delta \boldsymbol{\xi}} = - \begin{bmatrix} \frac{f_x}{Z'} & 0 & -\frac{f_x X'}{Z'^2} & -\frac{f_x X' Y'}{Z'^2} & f_x + \frac{f_x X'^2}{Z'^2} & -\frac{f_x Y'}{Z'} \\ 0 & \frac{f_y}{Z'} & -\frac{f_y Y'}{Z'^2} & -f_y - \frac{f_y Y'^2}{Z'^2} & \frac{f_y X' Y'}{Z'^2} & \frac{f_y X'}{Z'} \end{bmatrix}
+$$
+
+- 重投影误差对空间点的导数
+
+$$
+\frac{\partial \mathbf{e}}{\partial \mathbf{P}} = - \begin{bmatrix} \frac{f_x}{Z'} & 0 & -\frac{f_x X'}{Z'^2} \\ 0 & \frac{f_y}{Z'} & -\frac{f_y Y'}{Z'^2} \end{bmatrix} \mathbf{R}
+$$
+
+## 3D-3D：ICP
+
+- 找到了一组配对好的3D点，想要找到欧式变换R，t，使：
+
+$$
+\forall i, \mathbf{p}_i = \mathbf{R} \mathbf{p}'_i + \mathbf{t}
+$$
+
+### SVD方法
+
+- 首先计算质心，并求出去质心坐标
+
+$$
+p = \frac{1}{n} \sum_{i=1}^{n} p_i, \quad p' = \frac{1}{n} \sum_{i=1}^{n} p'_i
+$$
+
+$$
+q_i = p_i - p, \quad q'_i = p'_i - p'
+$$
+
+- 然后求解最佳旋转矩阵R
+
+$$
+\mathbf{R}^* = \arg \min_{\mathbf{R}} \frac{1}{2} \sum_{i=1}^{n} \|q_i - \mathbf{R} q'_i\|^2 
+$$
+
+- 计算平移向量t（只与质心位置有关）
+
+$$
+t^* = p - Rp'
+$$
+
+# CH8 视觉里程计
+
+## 直接法
+
+- 特征点提取十分耗时
+- 只用特征点会丢弃大量可能有用的信息
+- 特征缺失时不足以计算相机运动
+- 解决思路：
+- - 光流法跟踪特征点运动
+  - 直接法计算特征点在下一时刻的位置
+
+## 2D光流
+
+- 稀疏光流：计算部分像素的运动
+
+![image-20260422201946284](./视觉SLAM十四讲.assets/image-20260422201946284.png)
+
+### Lucas-Kanade光流
+
+- 认为相机的图像随时间变化，图像可以看作时间的函数：$I(t)$，
+- 灰度不变假设：假设同一个空间点的像素灰度值在哥哥图像中是固定不变的。
+- 灰度值不变，所以有：
+
+$$
+I(x+dx,y+dy,t+dt)=I(x,y,t)
+$$
+
+- 灰度不变假设实际上是一个很强的假设，因为像素会出现高光和阴影，有时相机也会自动调整曝光参数。
+
+- 对图像进行泰勒展开，保留一阶项，有：
+
+$$
+I(x + \text{d}x, y + \text{d}y, t + \text{d}t) \approx I(x, y, t) + \frac{\partial I}{\partial x} \text{d}x + \frac{\partial I}{\partial y} \text{d}y + \frac{\partial I}{\partial t} \text{d}t
+$$
+
+- 灰度不变假设：
+
+$$
+\frac{\partial I}{\partial x} \text{d}x + \frac{\partial I}{\partial y} \text{d}y + \frac{\partial I}{\partial t} \text{d}t = 0
+$$
+
+- 可以得到光流基本方程：
+
+$$
+\frac{\partial I}{\partial x} \frac{\text{d}x}{\text{d}t} + \frac{\partial I}{\partial y} \frac{\text{d}y}{\text{d}t} = -\frac{\partial I}{\partial t}
+$$
+
+- 将$\frac{\text{d}x}{\text{d}t}$ 和 $\frac{\text{d}y}{\text{d}t}$定义为运动速度u和v，即有：
+
+$$
+\begin{bmatrix} I_x & I_y \end{bmatrix} \begin{bmatrix} u \\ v \end{bmatrix} = -I_t
+$$
+
+## 直接法
+
+- 首先追踪特征点位置，再根据位置确定相机运动
+- 后一步是否可以调整前一步结果
+
+### 直接法推导
+
+![image-20260423151540066](./视觉SLAM十四讲.assets/image-20260423151540066.png)
+
+- 目标是求R和t
+- 对于同一个点的投影$p_1,p_2$：
+
+$$
+p_1 = \begin{bmatrix} u \\ v \\ 1 \end{bmatrix}_1 = \frac{1}{Z_1} \mathbf{K} P
+$$
+
+$$
+p_2 = \begin{bmatrix} u \\ v \\ 1 \end{bmatrix}_2 = \frac{1}{Z_2} \mathbf{K} (\mathbf{R}P + \mathbf{t}) = \frac{1}{Z_2} \mathbf{K} (\mathbf{T}P)_{1:3}
+$$
+
+- 直接法中，没有特征匹配，因此不知道$p_2,p_1$的对应关系；
+- 直接发的思路是依据当前位姿估计寻找$p_2$
+- 优化相机的位姿，找到与$p_1$更相似的$p_2$。这是一个优化问题：
+
+$$
+e = I_1(p_1) - I_2(p_2)
+$$
+
+$$
+\min_{\mathbf{T}} J(\mathbf{T}) = \| e \|^2
+$$
+
+- 这里优化的是相机位姿T
+
+### 直接法优缺点
+
+- - 省去计算特征点、描述子
+- - 只有有像素梯度即可，无需特征点
+  - 可以构建半稠密甚至稠密的地图
+- - 非凸，完全靠梯度搜索
+  - 单个像素没有区分度
+  - 要求灰度值不变，假设太强
+
+# CH9 后端
+

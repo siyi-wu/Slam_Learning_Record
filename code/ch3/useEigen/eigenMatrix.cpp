@@ -20,8 +20,7 @@ int main(int argc,char **argv){
 
     //Matrix3d：Eigen::Matrix<double,3,3>
     Matrix3d matrix_33=Matrix3d::Zero();//初始化为0
-    Matrix<double,Dynamic,Dynamic>
- matrix_dynamic;//可动态变化矩阵
+    Matrix<double,Dynamic,Dynamic> matrix_dynamic;//可动态变化矩阵
     MatrixXd matrix_x;//可动态变化矩阵
 
     //输入数据
