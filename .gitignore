@@ -4,10 +4,16 @@
 **/__pycache__/
 **/weights/
 **/outputs/
+**/node_modules/
 .DS_Store
 **/.DS_Store
 **/.vscode/
 **/build/
+**/slambook2/
+slam_learning_dashboard/docs/.vitepress/cache/
+slam_learning_dashboard/docs/.vitepress/dist/
+slam_learning_dashboard/.vitepress/
+tmp/
 
 # Macbook
 *.dSYM

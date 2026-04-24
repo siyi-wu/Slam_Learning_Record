@@ -1122,3 +1122,138 @@ $$
 
 # CH9 后端
 
+- 状态估计：通常考虑一段更长时间内的状态估计问题，会用过去、也会用将来的信息更新自己的状态（Batch）；如果只由过去的时刻决定，则是渐进的（Incremental）。
+- 运动方程和观测方程：
+
+$$
+\begin{cases}
+\boldsymbol{x}_k = f(\boldsymbol{x}_{k-1}, \boldsymbol{u}_k) + \boldsymbol{w}_k \\
+\boldsymbol{z}_{k,j} = h(\boldsymbol{y}_j, \boldsymbol{x}_k) + \boldsymbol{v}_{k,j}
+\end{cases}
+\quad k = 1, \dots, N, \ j = 1, \dots, M.
+$$
+
+- 每个方程都受噪声影响，因此位姿x和路标y都是服从某种概率分布的随机变量
+- 当没有观测数据时，不确定性越来越大；如果有正确的观测数据，不确定性就会缩小至一定大小，保持稳定。
+
+- 令$x_k$为k时刻的所有未知量，包含当前时刻的相机位姿与m个路标点。因此有：
+
+$$
+\boldsymbol{x}_k \stackrel{\text{def}}{=} \{\boldsymbol{x}_k, \boldsymbol{y}_1, \dots, \boldsymbol{y}_m\} 
+$$
+
+- 把k时刻的所有观测记作$z_k$，则运动方程为：
+
+$$
+\begin{cases} \boldsymbol{x}_k = f(\boldsymbol{x}_{k-1}, \boldsymbol{u}_k) + \boldsymbol{w}_k \\ \boldsymbol{z}_k = h(\boldsymbol{x}_k) + \boldsymbol{v}_k \end{cases} \quad k = 1, \dots, N.
+$$
+
+- 那么我们要估计的分布为：
+
+$$
+P(\boldsymbol{x}_k | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k})
+$$
+
+- 其中：
+
+$$
+P(\boldsymbol{x}_k | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k}) \propto P(\boldsymbol{z}_k | \boldsymbol{x}_k) P(\boldsymbol{x}_k | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1})
+$$
+
+$$
+P(\boldsymbol{x}_k | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1}) = \int P(\boldsymbol{x}_k | \boldsymbol{x}_{k-1}, \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1}) P(\boldsymbol{x}_{k-1} | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1}) d\boldsymbol{x}_{k-1} 
+$$
+
+### 线性系统和KF
+
+- 假设了马尔可夫性，那么当前时刻状态只和上一时刻有关；在程序中也就只需要维护一个状态量。
+- 卡尔曼滤波器：
+- - 预测：基于上一时刻的状态估计当前时刻的状态和协方差
+
+$$
+\check{\boldsymbol{x}}_k = \boldsymbol{A}_k \hat{\boldsymbol{x}}_{k-1} + \boldsymbol{u}_k
+$$
+
+$$
+\check{\boldsymbol{P}}_k = \boldsymbol{A}_k \hat{\boldsymbol{P}}_{k-1} \boldsymbol{A}_k^T + \boldsymbol{R}
+$$
+
+- - 更新：先计算K，卡尔曼增益；再计算后验概率的分布
+
+$$
+\boldsymbol{K} = \check{\boldsymbol{P}}_k \boldsymbol{C}_k^T (\boldsymbol{C}_k \check{\boldsymbol{P}}_k \boldsymbol{C}_k^T + \boldsymbol{Q}_k)^{-1}
+$$
+
+$$
+\hat{\boldsymbol{x}}_k = \check{\boldsymbol{x}}_k + \boldsymbol{K} (\boldsymbol{z}_k - \boldsymbol{C}_k \check{\boldsymbol{x}}_k)
+$$
+
+$$
+\hat{\boldsymbol{P}}_k = (\boldsymbol{I} - \boldsymbol{K} \boldsymbol{C}_k) \check{\boldsymbol{P}}_k
+$$
+
+- 可见，卡尔曼滤波器构成了该系统中的最大后验概率估计
+
+### 非线性系统和EKF
+
+- 扩展卡尔曼滤波器，在某个点附近考虑运动方程及观测方程的一阶泰勒展开，只保留一阶线性的部分，然后按照线性系统推导。
+
+- 线性化近似（一阶泰勒展开）：
+- - 运动方程线性化：
+
+$$
+\boldsymbol{x}_k \approx f(\hat{\boldsymbol{x}}_{k-1}, \boldsymbol{u}_k) + \left. \frac{\partial f}{\partial \boldsymbol{x}_{k-1}} \right|_{\hat{\boldsymbol{x}}_{k-1}} (\boldsymbol{x}_{k-1} - \hat{\boldsymbol{x}}_{k-1}) + \boldsymbol{w}_k
+$$
+
+$$
+\boldsymbol{F} = \left. \frac{\partial f}{\partial \boldsymbol{x}_{k-1}} \right|_{\hat{\boldsymbol{x}}_{k-1}}
+$$
+
+- - 观测方程线性化：
+
+$$
+\boldsymbol{z}_k \approx h(\check{\boldsymbol{x}}_k) + \left. \frac{\partial h}{\partial \boldsymbol{x}_k} \right|_{\check{\boldsymbol{x}}_k} (\boldsymbol{x}_k - \check{\boldsymbol{x}}_k) + \boldsymbol{n}_k
+$$
+
+$$
+\boldsymbol{H} = \left. \frac{\partial h}{\partial \boldsymbol{x}_k} \right|_{\check{\boldsymbol{x}}_k}
+$$
+
+- 那么预测步骤为：
+
+$$
+P(\boldsymbol{x}_k | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{0:k-1}) = N(f(\hat{\boldsymbol{x}}_{k-1}, \boldsymbol{u}_k), \boldsymbol{F} \hat{\boldsymbol{P}}_{k-1} \boldsymbol{F}^T + \boldsymbol{R}_k)
+$$
+
+- - 均值与协方差预测为：
+
+$$
+\check{\boldsymbol{x}}_k = f(\hat{\boldsymbol{x}}_{k-1}, \boldsymbol{u}_k), \quad \check{\boldsymbol{P}}_k = \boldsymbol{F} \hat{\boldsymbol{P}}_{k-1} \boldsymbol{F}^T + \boldsymbol{R}_k
+$$
+
+- 更新步骤为：
+- - 观测似然：
+
+$$
+P(\boldsymbol{z}_k | \boldsymbol{x}_k) = N(h(\check{\boldsymbol{x}}_k) + \boldsymbol{H}(\boldsymbol{x}_k - \check{\boldsymbol{x}}_k), \boldsymbol{Q}_k)
+$$
+
+- - 计算卡尔曼增益：
+
+$$
+\boldsymbol{K}_k = \check{\boldsymbol{P}}_k \boldsymbol{H}^T (\boldsymbol{H} \check{\boldsymbol{P}}_k \boldsymbol{H}^T + \boldsymbol{Q}_k)^{-1}
+$$
+
+- - 后验概率更新：
+
+$$
+\hat{\boldsymbol{x}}_k = \check{\boldsymbol{x}}_k + \boldsymbol{K}_k (\boldsymbol{z}_k - h(\check{\boldsymbol{x}}_k)), \quad \hat{\boldsymbol{P}}_k = (\boldsymbol{I} - \boldsymbol{K}_k \boldsymbol{H}) \check{\boldsymbol{P}}_k
+$$
+
+## BA与图优化
+
+![image-20260423215655918](./视觉SLAM十四讲.assets/image-20260423215655918.png)
+
+### 稀疏性与边缘化
+
+- 矩阵H是稀疏的，是由雅可比矩阵J引起的
