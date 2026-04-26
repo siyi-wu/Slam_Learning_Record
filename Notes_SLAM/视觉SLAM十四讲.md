@@ -247,10 +247,10 @@ $$
 - se(3)中每一个元素是$\boldsymbol{\xi}$，六维向量，前三维平移，后三维旋转。
 
 $$
-\boldsymbol{\xi}^{\wedge} = 
-\begin{bmatrix} 
-\boldsymbol{\phi}^{\wedge} & \boldsymbol{\rho} \\ 
-\mathbf{0}^{\mathrm{T}} & 0 
+\boldsymbol{\xi}^{\wedge} =
+\begin{bmatrix}
+\boldsymbol{\phi}^{\wedge} & \boldsymbol{\rho} \\
+\mathbf{0}^{\mathrm{T}} & 0
 \end{bmatrix} \in \mathbb{R}^{4 \times 4}.
 $$
 
@@ -286,7 +286,7 @@ $$
 - SO(3)上近似：
 
 $$
-\exp(\Delta \boldsymbol{\phi}^{\wedge}) \exp(\boldsymbol{\phi}^{\wedge}) = \exp \left( \left( \boldsymbol{\phi} + \mathbf{J}_l^{-1}(\boldsymbol{\phi}) \Delta \boldsymbol{\phi} \right)^{\wedge} \right) 
+\exp(\Delta \boldsymbol{\phi}^{\wedge}) \exp(\boldsymbol{\phi}^{\wedge}) = \exp \left( \left( \boldsymbol{\phi} + \mathbf{J}_l^{-1}(\boldsymbol{\phi}) \Delta \boldsymbol{\phi} \right)^{\wedge} \right)
 $$
 
 $$
@@ -296,11 +296,11 @@ $$
 - 这里的雅可比为：
 
 $$
-\mathbf{J}_l = \mathbf{J} = \frac{\sin \theta}{\theta} \mathbf{I} + \left( 1 - \frac{\sin \theta}{\theta} \right) \mathbf{a} \mathbf{a}^{\mathrm{T}} + \frac{1 - \cos \theta}{\theta} \mathbf{a}^{\wedge} 
+\mathbf{J}_l = \mathbf{J} = \frac{\sin \theta}{\theta} \mathbf{I} + \left( 1 - \frac{\sin \theta}{\theta} \right) \mathbf{a} \mathbf{a}^{\mathrm{T}} + \frac{1 - \cos \theta}{\theta} \mathbf{a}^{\wedge}
 $$
 
 $$
-\mathbf{J}_l^{-1} = \frac{\theta}{2} \cot \frac{\theta}{2} \mathbf{I} + \left( 1 - \frac{\theta}{2} \cot \frac{\theta}{2} \right) \mathbf{a} \mathbf{a}^{\mathrm{T}} - \frac{\theta}{2} \mathbf{a}^{\wedge} 
+\mathbf{J}_l^{-1} = \frac{\theta}{2} \cot \frac{\theta}{2} \mathbf{I} + \left( 1 - \frac{\theta}{2} \cot \frac{\theta}{2} \right) \mathbf{a} \mathbf{a}^{\mathrm{T}} - \frac{\theta}{2} \mathbf{a}^{\wedge}
 $$
 
 - SE(3)上近似：
@@ -354,6 +354,7 @@ $$
 ## 针孔相机模型
 
 ![image-20260415092558766](./视觉SLAM十四讲.assets/image-20260415092558766.png)
+
 $$
 X' = f \frac{X}{Z} \\
 Y' = f \frac{Y}{Z}
@@ -419,18 +420,19 @@ $$
 
 
 $$
-\begin{cases} 
-x_{\text{distorted}} = x(1 + k_1r^2 + k_2r^4 + k_3r^6) \\ 
-y_{\text{distorted}} = y(1 + k_1r^2 + k_2r^4 + k_3r^6) 
+\begin{cases}
+x_{\text{distorted}} = x(1 + k_1r^2 + k_2r^4 + k_3r^6) \\
+y_{\text{distorted}} = y(1 + k_1r^2 + k_2r^4 + k_3r^6)
 \end{cases}
 $$
+
 切向畸变公式：
 
 
 $$
-\begin{cases} 
-x_{\text{distorted}} = x + 2p_1xy + p_2(r^2 + 2x^2) \\ 
-y_{\text{distorted}} = y + p_1(r^2 + 2y^2) + 2p_2xy 
+\begin{cases}
+x_{\text{distorted}} = x + 2p_1xy + p_2(r^2 + 2x^2) \\
+y_{\text{distorted}} = y + p_1(r^2 + 2y^2) + 2p_2xy
 \end{cases}
 $$
 
@@ -482,6 +484,7 @@ $$
 $$
 
 其中$x_k$为相机位姿。我要在$x_k$处，对路标$y_j$进行观测，观测到的点对应图像上的像素位置$z_{k,j}$，则有观测方程：
+
 $$
 s\boldsymbol{z}_{k,j} = \boldsymbol{K}(\boldsymbol{R}_k \boldsymbol{y}_j + \boldsymbol{t}_k)
 $$
@@ -642,7 +645,7 @@ $$
 
 2. 对于第 $k$ 次迭代，在高斯牛顿法的基础上加上信赖区域，求解：
 
-   $$\min_{\Delta x_k} \frac{1}{2} \| f(x_k) + \mathbf{J}(x_k)^T \Delta x_k \|^2, \quad \text{s.t. } \| \mathbf{D} \Delta x_k \|^2 \le \mu \tag{6.35}$$
+   $\min_{\Delta x_k} \frac{1}{2} \| f(x_k) + \mathbf{J}(x_k)^T \Delta x_k \|^2, \quad \text{s.t. } \| \mathbf{D} \Delta x_k \|^2 \le \mu \tag{6.35}$
 
    其中，$\mu$ 是信赖区域的半径，$\mathbf{D}$ 为系数矩阵，将在后文说明。
 
@@ -660,7 +663,7 @@ $$
 
 - 高斯牛顿法：对F求二阶导不如对f求一阶导，求H。
 
--  列文伯格—马夸尔特方法：引入信赖区域，解决矩阵不可逆的问题或者步长太大的问题。
+- 列文伯格—马夸尔特方法：引入信赖区域，解决矩阵不可逆的问题或者步长太大的问题。
 
 # CH7 视觉里程计
 
@@ -754,13 +757,13 @@ $$
 $$
 
 $$
-\mathbf{x}_2 \simeq \mathbf{R} \mathbf{x}_1 + \mathbf{t} 
+\mathbf{x}_2 \simeq \mathbf{R} \mathbf{x}_1 + \mathbf{t}
 $$
 
 - 对极约束推导：
 
 $$
-\mathbf{t}^\wedge \mathbf{x}_2 \simeq \mathbf{t}^\wedge \mathbf{R} \mathbf{x}_1 
+\mathbf{t}^\wedge \mathbf{x}_2 \simeq \mathbf{t}^\wedge \mathbf{R} \mathbf{x}_1
 $$
 
 $$
@@ -770,7 +773,7 @@ $$
 - $\mathbf{t}^\wedge \mathbf{x}_2$与$\mathbf{t}$ 和 $\mathbf{x}_2$ 都垂直，与$\mathbf{x}_2$ 做内积结果为0
 
 $$
-\mathbf{x}_2^T \mathbf{t}^\wedge \mathbf{R} \mathbf{x}_1 = 0 
+\mathbf{x}_2^T \mathbf{t}^\wedge \mathbf{R} \mathbf{x}_1 = 0
 $$
 
 $$
@@ -871,7 +874,7 @@ $$
 - 平面方程（$n$ 是平面的法向量，$P$ 是空间点坐标，$d$ 是相机中心到平面的距离）：
 
 $$
-n^T P + d = 0, -\frac{n^T P}{d} = 1 
+n^T P + d = 0, -\frac{n^T P}{d} = 1
 $$
 
 - 所以单应矩阵H为：
@@ -1015,7 +1018,7 @@ $$
 - 然后求解最佳旋转矩阵R
 
 $$
-\mathbf{R}^* = \arg \min_{\mathbf{R}} \frac{1}{2} \sum_{i=1}^{n} \|q_i - \mathbf{R} q'_i\|^2 
+\mathbf{R}^* = \arg \min_{\mathbf{R}} \frac{1}{2} \sum_{i=1}^{n} \|q_i - \mathbf{R} q'_i\|^2
 $$
 
 - 计算平移向量t（只与质心位置有关）
@@ -1026,7 +1029,7 @@ $$
 
 # CH8 视觉里程计
 
-## 直接法
+## 直接法概述
 
 - 特征点提取十分耗时
 - 只用特征点会丢弃大量可能有用的信息
@@ -1139,7 +1142,7 @@ $$
 - 令$x_k$为k时刻的所有未知量，包含当前时刻的相机位姿与m个路标点。因此有：
 
 $$
-\boldsymbol{x}_k \stackrel{\text{def}}{=} \{\boldsymbol{x}_k, \boldsymbol{y}_1, \dots, \boldsymbol{y}_m\} 
+\boldsymbol{x}_k \stackrel{\text{def}}{=} \{\boldsymbol{x}_k, \boldsymbol{y}_1, \dots, \boldsymbol{y}_m\}
 $$
 
 - 把k时刻的所有观测记作$z_k$，则运动方程为：
@@ -1161,10 +1164,10 @@ P(\boldsymbol{x}_k | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k
 $$
 
 $$
-P(\boldsymbol{x}_k | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1}) = \int P(\boldsymbol{x}_k | \boldsymbol{x}_{k-1}, \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1}) P(\boldsymbol{x}_{k-1} | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1}) d\boldsymbol{x}_{k-1} 
+P(\boldsymbol{x}_k | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1}) = \int P(\boldsymbol{x}_k | \boldsymbol{x}_{k-1}, \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1}) P(\boldsymbol{x}_{k-1} | \boldsymbol{x}_0, \boldsymbol{u}_{1:k}, \boldsymbol{z}_{1:k-1}) d\boldsymbol{x}_{k-1}
 $$
 
-### 线性系统和KF
+## 线性系统和KF
 
 - 假设了马尔可夫性，那么当前时刻状态只和上一时刻有关；在程序中也就只需要维护一个状态量。
 - 卡尔曼滤波器：
@@ -1194,7 +1197,7 @@ $$
 
 - 可见，卡尔曼滤波器构成了该系统中的最大后验概率估计
 
-### 非线性系统和EKF
+## 非线性系统和EKF
 
 - 扩展卡尔曼滤波器，在某个点附近考虑运动方程及观测方程的一阶泰勒展开，只保留一阶线性的部分，然后按照线性系统推导。
 
@@ -1423,3 +1426,31 @@ $$
 s(v_A - v_B) = 2 \sum_{i=1}^{N} |v_{Ai}| + |v_{Bi}| - |v_{Ai} - v_{Bi}|
 $$
 
+## 实验分析
+
+### 关键帧处理
+
+- 必须考虑关键帧选取
+- 基于回环检测的帧最好稀疏一些：n与n-2相似，其意义不大
+- 把相近的回环聚成一类
+
+### 检测之后验证 
+
+- 回环检测完全依赖于外观而没有任何几何信息，导致外观相似的图像容易被当成回环
+- 可以用一段时间一直检测到回环当做验证
+
+### 与机器学习的关系
+
+- 回环中类别的数量很大，但每类的样本很少
+- 实际上是对图像间相似度的学习
+- - 可以对机器学习的图像特征进行聚类，而不对人工设计的特征进行聚类
+  - 更好的聚类方式
+
+# CH12 建图
+
+- 地图的用处：
+- - 定位：确定机器人的位置（还可以保存地图）
+  - 导航：机器人在地图中进行路径规划，然后自己运动到目标点（需要知道地图中哪里可以通过）；必须是稠密的地图
+  - 避障：更注重局部的障碍物处理。需要稠密地图
+  - 重建：向人展示
+  - 交互：人与地图之间互动
