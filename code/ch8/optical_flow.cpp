@@ -23,11 +23,11 @@ public:
         const vector<KeyPoint> &kp1_,
         vector<KeyPoint> &kp2_,
         vector<bool> &success_,
-        bool inverse_ = true, bool has_initial_ = false) :
+        bool inverse_ = true, bool has_initial_ = false) : //正向还是反向LK，kp2第二帧估计出的关键点是否有初值
         img1(img1_), img2(img2_), kp1(kp1_), kp2(kp2_), success(success_), inverse(inverse_),
         has_initial(has_initial_) {}
 
-    void calculateOpticalFlow(const Range &range);
+    void calculateOpticalFlow(const Range &range);//成员函数
 
 private:
     const Mat &img1;
@@ -112,6 +112,7 @@ int main(int argc, char **argv) {
     // key points, using GFTT here.
     vector<KeyPoint> kp1;
     Ptr<GFTTDetector> detector = GFTTDetector::create(500, 0.01, 20); // maximum 500 keypoints
+    //最大点数，剔除角点比例系数，最小容忍距离（避免扎堆）
     detector->detect(img1, kp1);
 
     // now lets track these key points in the second image

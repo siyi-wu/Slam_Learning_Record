@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <memory>
 #include <Eigen/Core>
 
 #include <g2o/core/base_vertex.h>
@@ -52,6 +53,7 @@ public:
             Quaterniond(data[6], data[3], data[4], data[5]),
             Vector3d(data[0], data[1], data[2])
         ));
+        return true;
     }
 
     virtual bool write(ostream &os) const override {
@@ -146,7 +148,7 @@ int main(int argc, char **argv) {
     typedef g2o::BlockSolver<g2o::BlockSolverTraits<6, 6>> BlockSolverType;
     typedef g2o::LinearSolverEigen<BlockSolverType::PoseMatrixType> LinearSolverType;
     auto solver = new g2o::OptimizationAlgorithmLevenberg(
-        g2o::make_unique<BlockSolverType>(g2o::make_unique<LinearSolverType>()));
+        std::make_unique<BlockSolverType>(std::make_unique<LinearSolverType>()));
     g2o::SparseOptimizer optimizer;     // 图模型
     optimizer.setAlgorithm(solver);   // 设置求解器
     optimizer.setVerbose(true);       // 打开调试输出

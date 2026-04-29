@@ -2,9 +2,10 @@
 #include <g2o/core/base_binary_edge.h>
 #include <g2o/core/block_solver.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
-#include <g2o/solvers/csparse/linear_solver_csparse.h>
+#include <g2o/solvers/eigen/linear_solver_eigen.h>
 #include <g2o/core/robust_kernel_impl.h>
 #include <iostream>
+#include <memory>
 
 #include "common.h"
 #include "sophus/se3.hpp"
@@ -17,7 +18,7 @@ using namespace std;
 struct PoseAndIntrinsics {
     PoseAndIntrinsics() {}
 
-    /// set from given data address
+    /// set from given data addreess
     explicit PoseAndIntrinsics(double *data_addr) {
         rotation = SO3d::exp(Vector3d(data_addr[0], data_addr[1], data_addr[2]));
         translation = Vector3d(data_addr[3], data_addr[4], data_addr[5]);
@@ -71,9 +72,9 @@ public:
                         _estimate.focal * distortion * pc[1]);
     }
 
-    virtual bool read(istream &in) {}
+    virtual bool read(istream &in) override { return false; }
 
-    virtual bool write(ostream &out) const {}
+    virtual bool write(ostream &out) const override { return false; }
 };
 
 class VertexPoint : public g2o::BaseVertex<3, Vector3d> {
@@ -90,9 +91,9 @@ public:
         _estimate += Vector3d(update[0], update[1], update[2]);
     }
 
-    virtual bool read(istream &in) {}
+    virtual bool read(istream &in) override { return false; }
 
-    virtual bool write(ostream &out) const {}
+    virtual bool write(ostream &out) const override { return false; }
 };
 
 class EdgeProjection :
@@ -108,9 +109,9 @@ public:
     }
 
     // use numeric derivatives
-    virtual bool read(istream &in) {}
+    virtual bool read(istream &in) override { return false; }
 
-    virtual bool write(ostream &out) const {}
+    virtual bool write(ostream &out) const override { return false; }
 
 };
 
@@ -141,10 +142,10 @@ void SolveBA(BALProblem &bal_problem) {
 
     // pose dimension 9, landmark is 3
     typedef g2o::BlockSolver<g2o::BlockSolverTraits<9, 3>> BlockSolverType;
-    typedef g2o::LinearSolverCSparse<BlockSolverType::PoseMatrixType> LinearSolverType;
+    typedef g2o::LinearSolverEigen<BlockSolverType::PoseMatrixType> LinearSolverType;
     // use LM
     auto solver = new g2o::OptimizationAlgorithmLevenberg(
-        g2o::make_unique<BlockSolverType>(g2o::make_unique<LinearSolverType>()));
+        std::make_unique<BlockSolverType>(std::make_unique<LinearSolverType>()));
     g2o::SparseOptimizer optimizer;
     optimizer.setAlgorithm(solver);
     optimizer.setVerbose(true);

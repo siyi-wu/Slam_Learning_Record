@@ -9,6 +9,7 @@
 ## 文件入口
 
 - `code/ch8/optical_flow.cpp`
+- `code/ch8/optical_flow.md`
 - `code/ch8/direct_method.cpp`
 
 ## 学习检查点

@@ -1,24 +1,38 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.16)
 
-project(bundle_adjustment)
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-O3 -std=c++11")
+project(bundle_adjustment LANGUAGES CXX)
 
-LIST(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-Find_Package(G2O REQUIRED)
-Find_Package(Eigen3 REQUIRED)
-Find_Package(Ceres REQUIRED)
-Find_Package(Sophus REQUIRED)
-Find_Package(CSparse REQUIRED)
+if(APPLE)
+    list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew")
+endif()
 
-SET(G2O_LIBS g2o_csparse_extension g2o_stuff g2o_core cxsparse)
+find_package(Eigen3 REQUIRED)
+find_package(Ceres REQUIRED)
+find_package(g2o REQUIRED)
 
-include_directories(${PROJECT_SOURCE_DIR} ${EIGEN3_INCLUDE_DIR} ${CSPARSE_INCLUDE_DIR})
+
+find_package(Sophus REQUIRED)
 
 add_library(bal_common common.cpp)
-add_executable(bundle_adjustment_g2o bundle_adjustment_g2o.cpp)
-add_executable(bundle_adjustment_ceres bundle_adjustment_ceres.cpp)
+target_link_libraries(bal_common PUBLIC Eigen3::Eigen)
+target_include_directories(bal_common PUBLIC ${PROJECT_SOURCE_DIR})
 
-target_link_libraries(bundle_adjustment_ceres ${CERES_LIBRARIES} bal_common)
-target_link_libraries(bundle_adjustment_g2o ${G2O_LIBS} bal_common)
+add_executable(bundle_adjustment_ceres bundle_adjustment_ceres.cpp)
+target_link_libraries(bundle_adjustment_ceres PRIVATE
+    bal_common
+    Ceres::ceres
+)
+
+add_executable(bundle_adjustment_g2o bundle_adjustment_g2o.cpp)
+target_link_libraries(bundle_adjustment_g2o PRIVATE
+    bal_common
+    g2o::core
+    g2o::stuff
+    g2o::solver_eigen
+    Sophus::Sophus
+)
