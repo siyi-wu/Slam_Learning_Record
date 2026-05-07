@@ -1,22 +1,27 @@
-cmake_minimum_required(VERSION 2.8)
-project(dense_monocular)
+cmake_minimum_required(VERSION 3.10)
+project(dense_monocular LANGUAGES CXX)
 
-set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++11 -march=native -O3")
+set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 ############### dependencies ######################
 # Eigen
-include_directories("/usr/include/eigen3")
+find_package(Eigen3 REQUIRED)
 # OpenCV
-find_package(OpenCV 3.1 REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+find_package(OpenCV REQUIRED)
 # Sophus
 find_package(Sophus REQUIRED)
-include_directories(${Sophus_INCLUDE_DIRS})
+find_package(Boost REQUIRED)
 
-set(THIRD_PARTY_LIBS
-        ${OpenCV_LIBS}
-        ${Sophus_LIBRARIES})
+set(THIRD_PARTY_LIBS ${OpenCV_LIBS} Sophus::Sophus Eigen3::Eigen Boost::headers)
 
 add_executable(dense_mapping dense_mapping.cpp)
-target_link_libraries(dense_mapping ${THIRD_PARTY_LIBS})
+target_include_directories(dense_mapping PRIVATE ${OpenCV_INCLUDE_DIRS})
+target_compile_options(dense_mapping PRIVATE -march=native -O3)
+target_compile_definitions(dense_mapping PRIVATE
+    BOOST_TIMER_ENABLE_DEPRECATED
+    CV_GRAY2BGR=cv::COLOR_GRAY2BGR
+)
+target_link_libraries(dense_mapping PRIVATE ${THIRD_PARTY_LIBS})

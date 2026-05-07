@@ -24,6 +24,7 @@ target_include_directories(trajectory PRIVATE
 
 target_link_libraries(trajectory PRIVATE
     Sophus::Sophus
+    Eigen3::Eigen
     ${Pangolin_LIBRARIES}
     GLEW::GLEW
     OpenGL::GL

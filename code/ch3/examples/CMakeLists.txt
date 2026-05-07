@@ -1,32 +1,23 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(transform)
+project(transform LANGUAGES CXX)
 
-set(CMAKE_CXX_FLAGS "-O3")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Eigen3 REQUIRED)
 
 add_executable(coordinateTransform coordinateTransform.cpp)
-target_link_libraries(coordinateTransform Eigen3::Eigen)
+target_link_libraries(coordinateTransform PRIVATE Eigen3::Eigen)
 
 
-find_package(Pangolin REQUIRED)
-include_directories(${Pangolin_INCLUDE_DIRS})
+find_package(Pangolin QUIET)
 
-add_executable(plotTrajectory plotTrajectory.cpp)
-target_link_libraries(plotTrajectory ${Pangolin_LIBRARIES})
-
-
-
-
-
-# cmake_minimum_required(VERSION 3.10)
-
-# project(transform)
-
-# find_package(Eigen3 REQUIRED)
-
-# add_executable(ctransform coodinateTransform.cpp)
-# target_link_libraries(ctransform Eigen3::Eigen)
-
-# set(CMAKE_CXX_FLAGS "-O3") # 开启release优化
+if(Pangolin_FOUND)
+    add_executable(plotTrajectory plotTrajectory.cpp)
+    target_include_directories(plotTrajectory PRIVATE ${Pangolin_INCLUDE_DIRS})
+    target_link_libraries(plotTrajectory PRIVATE ${Pangolin_LIBRARIES})
+else()
+    message(STATUS "Skipping plotTrajectory: Pangolin was not found.")
+endif()

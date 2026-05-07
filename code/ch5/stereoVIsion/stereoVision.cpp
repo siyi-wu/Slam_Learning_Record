@@ -4,7 +4,7 @@
 #include <Eigen/Core>
 #include <pangolin/pangolin.h>
 #include <unistd.h>
-#include <OpenGL/gl.h>
+#include <GL/gl.h>
 
 using namespace std;
 using namespace Eigen;

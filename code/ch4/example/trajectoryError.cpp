@@ -4,7 +4,7 @@
 #include <pangolin/pangolin.h>
 #include <sophus/se3.hpp>
 #include <Eigen/Core>
-#include <OpenGL/gl.h>
+#include <GL/gl.h>
 
 using namespace Sophus;
 using namespace std;

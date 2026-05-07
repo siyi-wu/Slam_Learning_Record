@@ -9,6 +9,15 @@
 **/.DS_Store
 **/.vscode/
 **/build/
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/compile_commands.json
+**/CTestTestfile.cmake
+**/install_manifest.txt
+**/Makefile
+code/**/bin/
+code/**/lib/
 **/slambook2/
 slam_learning_dashboard/docs/.vitepress/cache/
 slam_learning_dashboard/docs/.vitepress/dist/
@@ -17,3 +26,13 @@ tmp/
 
 # Macbook
 *.dSYM
+
+# Native build artifacts
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.o
+*.obj

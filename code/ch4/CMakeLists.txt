@@ -11,8 +11,5 @@ find_package(Sophus REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 add_executable(usesophus useSophus.cpp)
-
-target_link_libraries(usesophus Sophus::Sophus)
-target_link_libraries(usesophus Eigen3::Eigen)
-
-set(CMAKE_CXX_FLAGS "-O3") # 开启release优化
+target_link_libraries(usesophus PRIVATE Sophus::Sophus Eigen3::Eigen)
+target_compile_options(usesophus PRIVATE -O3)

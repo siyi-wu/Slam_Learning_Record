@@ -11,5 +11,6 @@ add_library(myslam SHARED
         visual_odometry.cpp
         dataset.cpp)
 
-target_link_libraries(myslam
+target_compile_options(myslam PRIVATE -Wall -O3)
+target_link_libraries(myslam PUBLIC
         ${THIRD_PARTY_LIBS})
