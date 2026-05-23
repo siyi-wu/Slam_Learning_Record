@@ -48,26 +48,34 @@ void Viewer::ThreadLoop() {
             .SetBounds(0.0, 1.0, 0.0, 1.0, -1024.0f / 768.0f)
             .SetHandler(new pangolin::Handler3D(vis_camera));
 
-    const float blue[3] = {0, 0, 1};
     const float green[3] = {0, 1, 0};
 
     while (!pangolin::ShouldQuit() && viewer_running_) {
+        Frame::Ptr current_frame = nullptr;
+        Map::KeyframesType active_keyframes;
+        Map::LandmarksType active_landmarks;
+        {
+            std::unique_lock<std::mutex> lock(viewer_data_mutex_);
+            current_frame = current_frame_;
+            active_keyframes = active_keyframes_;
+            active_landmarks = active_landmarks_;
+        }
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         vis_display.Activate(vis_camera);
 
-        std::unique_lock<std::mutex> lock(viewer_data_mutex_);
-        if (current_frame_) {
-            DrawFrame(current_frame_, green);
-            FollowCurrentFrame(vis_camera);
+        if (current_frame) {
+            DrawFrame(current_frame, green);
+            FollowCurrentFrame(vis_camera, current_frame);
 
-            cv::Mat img = PlotFrameImage();
+            cv::Mat img = PlotFrameImage(current_frame);
             cv::imshow("image", img);
             cv::waitKey(1);
         }
 
         if (map_) {
-            DrawMapPoints();
+            DrawMapPoints(active_keyframes, active_landmarks);
         }
 
         pangolin::FinishFrame();
@@ -77,12 +85,12 @@ void Viewer::ThreadLoop() {
     LOG(INFO) << "Stop viewer";
 }
 
-cv::Mat Viewer::PlotFrameImage() {
+cv::Mat Viewer::PlotFrameImage(Frame::Ptr frame) {
     cv::Mat img_out;
-    cv::cvtColor(current_frame_->left_img_, img_out, cv::COLOR_GRAY2BGR);
-    for (size_t i = 0; i < current_frame_->features_left_.size(); ++i) {
-        if (current_frame_->features_left_[i]->map_point_.lock()) {
-            auto feat = current_frame_->features_left_[i];
+    cv::cvtColor(frame->left_img_, img_out, cv::COLOR_GRAY2BGR);
+    for (size_t i = 0; i < frame->features_left_.size(); ++i) {
+        if (frame->features_left_[i]->map_point_.lock()) {
+            auto feat = frame->features_left_[i];
             cv::circle(img_out, feat->position_.pt, 2, cv::Scalar(0, 250, 0),
                        2);
         }
@@ -90,8 +98,9 @@ cv::Mat Viewer::PlotFrameImage() {
     return img_out;
 }
 
-void Viewer::FollowCurrentFrame(pangolin::OpenGlRenderState& vis_camera) {
-    SE3 Twc = current_frame_->Pose().inverse();
+void Viewer::FollowCurrentFrame(pangolin::OpenGlRenderState& vis_camera,
+                                Frame::Ptr frame) {
+    SE3 Twc = frame->Pose().inverse();
     pangolin::OpenGlMatrix m(Twc.matrix());
     vis_camera.Follow(m, true);
 }
@@ -144,15 +153,16 @@ void Viewer::DrawFrame(Frame::Ptr frame, const float* color) {
     glPopMatrix();
 }
 
-void Viewer::DrawMapPoints() {
+void Viewer::DrawMapPoints(const Map::KeyframesType& keyframes,
+                           const Map::LandmarksType& landmarks) {
     const float red[3] = {1.0, 0, 0};
-    for (auto& kf : active_keyframes_) {
+    for (auto& kf : keyframes) {
         DrawFrame(kf.second, red);
     }
 
     glPointSize(2);
     glBegin(GL_POINTS);
-    for (auto& landmark : active_landmarks_) {
+    for (auto& landmark : landmarks) {
         auto pos = landmark.second->Pos();
         glColor3f(red[0], red[1], red[2]);
         glVertex3d(pos[0], pos[1], pos[2]);

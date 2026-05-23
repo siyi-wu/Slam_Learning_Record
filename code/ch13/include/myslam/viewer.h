@@ -39,12 +39,14 @@ class Viewer {
 
     void DrawFrame(Frame::Ptr frame, const float* color);
 
-    void DrawMapPoints();
+    void DrawMapPoints(const Map::KeyframesType& keyframes,
+                       const Map::LandmarksType& landmarks);
 
-    void FollowCurrentFrame(pangolin::OpenGlRenderState& vis_camera);
+    void FollowCurrentFrame(pangolin::OpenGlRenderState& vis_camera,
+                            Frame::Ptr frame);
 
     /// plot the features in current frame into an image
-    cv::Mat PlotFrameImage();
+    cv::Mat PlotFrameImage(Frame::Ptr frame);
 
     Frame::Ptr current_frame_ = nullptr;
     Map::Ptr map_ = nullptr;

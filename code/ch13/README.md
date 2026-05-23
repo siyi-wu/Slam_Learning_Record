@@ -1,15 +1,34 @@
-# ch13 学习脚手架：工程化视觉里程计系统
+Frame：一帧双目图像
+Feature：图像里的二维特征点
+MapPoint：由特征点三角化得到的三维地图点
 
-## 当前可学习源码（本目录）
+一帧 Frame
+ ├── 左图 left_img_
+ ├── 右图 right_img_
+ ├── 位姿 pose_
+ └── 很多 Feature
 
-- `code/ch13/src/frontend.cpp`
-- `code/ch13/src/backend.cpp`
-- `code/ch13/src/map.cpp`
-- `code/ch13/src/visual_odometry.cpp`
-- `code/ch13/app/run_kitti_stereo.cpp`
+一个 Feature
+ ├── 在图像上的 2D 位置
+ └── 可能关联一个 MapPoint
 
-## 学习检查点
+一个 MapPoint
+ ├── 在世界坐标系下的 3D 位置
+ └── 被多个 Feature 观测到
 
-1. 你能画出前端/后端/地图/可视化模块关系图。
-2. 你能跟踪一帧数据在系统中的完整流转路径。
-3. 你能定位关键参数（如特征阈值、关键帧策略）并做实验对比。
+map关键帧保留：
+1. 不要保留太相似的关键帧
+2. 也不要让局部地图离当前帧太远
+3. 让 active_keyframes_ 围绕当前帧，形成一个局部窗口
+
+frontend：
+接收新图像帧
+初始化地图
+跟踪相机运动
+估计当前帧位姿
+判断跟踪质量
+插入关键帧
+生成新的地图点
+通知后端优化
+通知 viewer 可视化
+
