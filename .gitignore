@@ -19,9 +19,6 @@
 code/**/bin/
 code/**/lib/
 **/slambook2/
-slam_learning_dashboard/docs/.vitepress/cache/
-slam_learning_dashboard/docs/.vitepress/dist/
-slam_learning_dashboard/.vitepress/
 tmp/
 *.gz
 
