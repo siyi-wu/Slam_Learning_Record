@@ -1,0 +1,77 @@
+FROM osrf/ros:noetic-desktop-full
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+
+# 可选：把 Ubuntu 20.04 apt 源切到清华镜像，提高国内下载稳定性。
+RUN sed -i \
+    -e 's@http://archive.ubuntu.com/ubuntu/@https://mirrors.tuna.tsinghua.edu.cn/ubuntu/@g' \
+    -e 's@http://security.ubuntu.com/ubuntu/@https://mirrors.tuna.tsinghua.edu.cn/ubuntu/@g' \
+    /etc/apt/sources.list
+
+# Core build, ROS, SLAM, and GUI dependencies. Pangolin/g2o can be mounted
+# or built from host-provided sources at container runtime.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    wget \
+    curl \
+    ca-certificates \
+    pkg-config \
+    gdb \
+    vim \
+    nano \
+    htop \
+    unzip \
+    python3-pip \
+    python3-tk \
+    software-properties-common \
+    lsb-release \
+    \
+    libboost-all-dev \
+    libeigen3-dev \
+    libgoogle-glog-dev \
+    libgflags-dev \
+    libsuitesparse-dev \
+    libmetis-dev \
+    libyaml-cpp-dev \
+    libopencv-dev \
+    libpcl-dev \
+    libtbb-dev \
+    libgtest-dev \
+    libgmock-dev \
+    \
+    libglew-dev \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
+    libegl1-mesa-dev \
+    libepoxy-dev \
+    libx11-dev \
+    libxrandr-dev \
+    libxinerama-dev \
+    libxcursor-dev \
+    libxi-dev \
+    libxkbcommon-dev \
+    libwayland-dev \
+    wayland-protocols \
+    qtbase5-dev \
+    libqt5opengl5-dev \
+    \
+    ros-noetic-pcl-ros \
+    ros-noetic-pcl-conversions \
+    ros-noetic-velodyne-msgs \
+    ros-noetic-cv-bridge \
+    ros-noetic-tf \
+    ros-noetic-tf2-ros \
+    ros-noetic-rviz \
+    && rm -rf /var/lib/apt/lists/*
+
+# 方便交互式 shell 自动加载 ROS。
+RUN echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
+ 
+WORKDIR /sad
+
+CMD ["bash"]
